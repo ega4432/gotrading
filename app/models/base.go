@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const tableNameSingleEvents = "single_events"
+const tableNameSignalEvents = "single_events"
 
 var Dbconnection *sql.DB
 
@@ -21,22 +21,23 @@ func init() {
 	var err error
 	Dbconnection, err := sql.Open(config.Config.SQLDriver, config.Config.Dbname)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("ERROR:", err)
 	}
-	cmd := fmt.Sprintf(`
-		 CREATE TABLE IF NOT EXISTS %s (
-			time DATETIME PRIMARY NOT NULL,
+	cmd := fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s (
+			time DATETIME PRIMARY KEY NOT NULL,
 			product_code STRING,
 			side STRING,
 			price FLOAT,
-			size FLOAT)`, tableNameSingleEvents)
+			size FLOAT)`, tableNameSignalEvents)
 	Dbconnection.Exec(cmd)
 
 	for _, duration := range config.Config.Durations {
 		tableName := GetCandleTableName(config.Config.Productcode, duration)
-		c := fmt.Sprintf(`
-		CREATE TABLE IF NOT EXISTS %s (
-			time DATETIME PRIMARY NOT NULL,
+		log.Println(tableName)
+		c := fmt.Sprintf(
+			`CREATE TABLE IF NOT EXISTS %s (
+			time DATETIME PRIMARY KEY NOT NULL,
 			open FLOAT,
 			close FLOAT,
 			high FLOAT,
