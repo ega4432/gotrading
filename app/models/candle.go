@@ -39,6 +39,7 @@ func (c *Candle) Create() error {
 	if err != nil {
 		return err
 	}
+	return err
 }
 
 func (c *Candle) Save() error {
