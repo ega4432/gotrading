@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ciruclation-dev/gotrading/app/controllers"
 	"github.com/ciruclation-dev/gotrading/app/models"
 	//"github.com/ciruclation-dev/gotrading/bitflyer"
 	"github.com/ciruclation-dev/gotrading/config"
@@ -18,4 +19,5 @@ func main() {
 	//fmt.Println(ticker.DateTime())
 	//fmt.Println(ticker.TruncateDateTime(time.Hour))
 	fmt.Println(models.Dbconnection)
+	controllers.StreamIngestionData()
 }
