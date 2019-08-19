@@ -10,7 +10,7 @@ import (
 func StreamIngestionData() {
 	var tickerChannl = make(chan bitflyer.Ticker)
 	apiClient := bitflyer.New(config.Config.ApiKey, config.Config.ApiSecret)
-	go apiClient.GetRealTimeTicker(config.Config.Productcode, tickerChannl)
+	go apiClient.GetRealTimeTicker(config.Config.ProductCode, tickerChannl)
 	go func() {
 		for ticker := range tickerChannl {
 			log.Println("action=StreamIngestionData, %v", ticker)

@@ -87,7 +87,6 @@ func GetAllCandle(productCode string, duration time.Duration, limit int) (dfCand
 	cmd := fmt.Sprintf(`SELECT * FROM (
 		SELECT time, open, close, high, low, volume FROM %s ORDER BY time DESC LIMIT ?
 		) ORDER BY time ASC;`, tableName)
-	//rows, err := DbConnection.Query(cmd, limit)
 	rows, err := DbConnection.Query(cmd, limit)
 	if err != nil {
 		return

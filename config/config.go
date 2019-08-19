@@ -11,11 +11,11 @@ type ConfigList struct {
 	ApiKey      string
 	ApiSecret   string
 	LogFile     string
-	Productcode string
+	ProductCode string
 
 	TradeDuration time.Duration
 	Durations     map[string]time.Duration
-	Dbname        string
+	DbName        string
 	SQLDriver     string
 	Port          int
 }
@@ -39,10 +39,10 @@ func init() {
 		ApiKey:        cfg.Section("bitflyer").Key("api_key").String(),
 		ApiSecret:     cfg.Section("bitflyer").Key("secret_key").String(),
 		LogFile:       cfg.Section("gotrading").Key("log_file").String(),
-		Productcode:   cfg.Section("gotrading").Key("product_code").String(),
+		ProductCode:   cfg.Section("gotrading").Key("product_code").String(),
 		Durations:     durations,
 		TradeDuration: durations[cfg.Section("gotrading").Key("trading_duration").String()],
-		Dbname:        cfg.Section("db").Key("name").String(),
+		DbName:        cfg.Section("db").Key("name").String(),
 		SQLDriver:     cfg.Section("db").Key("driver").String(),
 		Port:          cfg.Section("web").Key("port").MustInt(),
 	}
