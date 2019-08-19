@@ -11,7 +11,7 @@ import (
 
 const tableNameSignalEvents = "single_events"
 
-var Dbconnection *sql.DB
+var DbConnection *sql.DB
 
 func GetCandleTableName(productCode string, duration time.Duration) string {
 	return fmt.Sprintf("%s_%s", productCode, duration)
@@ -19,7 +19,7 @@ func GetCandleTableName(productCode string, duration time.Duration) string {
 
 func init() {
 	var err error
-	Dbconnection, err := sql.Open(config.Config.SQLDriver, config.Config.Dbname)
+	DbConnection, err := sql.Open(config.Config.SQLDriver, config.Config.Dbname)
 	if err != nil {
 		log.Fatalln("ERROR:", err)
 	}
@@ -30,7 +30,7 @@ func init() {
 			side STRING,
 			price FLOAT,
 			size FLOAT)`, tableNameSignalEvents)
-	Dbconnection.Exec(cmd)
+	DbConnection.Exec(cmd)
 
 	for _, duration := range config.Config.Durations {
 		tableName := GetCandleTableName(config.Config.Productcode, duration)
@@ -43,6 +43,6 @@ func init() {
 			high FLOAT,
 			low open FLOAT,
 			volume FLOAT)`, tableName)
-		Dbconnection.Exec(c)
+		DbConnection.Exec(c)
 	}
 }
