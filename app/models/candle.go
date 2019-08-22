@@ -33,8 +33,9 @@ func NewCandle(productCode string, duration time.Duration, timeDate time.Time, o
 func (c *Candle) TableName() string {
 	return GetCandleTableName(c.ProductCode, c.Duration)
 }
+
 func (c *Candle) Create() error {
-	cmd := fmt.Sprintf("INSERT INTO %s (time, open, high, low, volume) VALUES (?, ? , ? , ?)", c.TableName())
+	cmd := fmt.Sprintf("INSERT INTO %s (time, open, close, high, low, volume) VALUES (?, ?, ?, ?, ?, ?)", c.TableName())
 	_, err := DbConnection.Exec(cmd, c.Time.Format(time.RFC3339), c.Open, c.Close, c.High, c.Low, c.Volume)
 	if err != nil {
 		return err
@@ -43,7 +44,7 @@ func (c *Candle) Create() error {
 }
 
 func (c *Candle) Save() error {
-	cmd := fmt.Sprintf("UPDATE %s SET open = ?, high = ?, low = ?, volume = ? WHERE time = ?", c.TableName())
+	cmd := fmt.Sprintf("UPDATE %s SET open = ?, close = ?, high = ?, low = ?, volume = ? WHERE time = ?", c.TableName())
 	_, err := DbConnection.Exec(cmd, c.Open, c.Close, c.High, c.Low, c.Volume, c.Time.Format(time.RFC3339))
 	if err != nil {
 		return err
@@ -51,10 +52,10 @@ func (c *Candle) Save() error {
 	return err
 }
 
-func GetCandle(productCode string, duration time.Duration, datetime time.Time) *Candle {
+func GetCandle(productCode string, duration time.Duration, dateTime time.Time) *Candle {
 	tableName := GetCandleTableName(productCode, duration)
-	cmd := fmt.Sprintf("SELECT time, open, close, high, low, volume FROM %s WHERE time = ?", tableName)
-	row := DbConnection.QueryRow(cmd, datetime.Format(time.RFC3339))
+	cmd := fmt.Sprintf("SELECT time, open, close, high, low, volume FROM  %s WHERE time = ?", tableName)
+	row := DbConnection.QueryRow(cmd, dateTime.Format(time.RFC3339))
 	var candle Candle
 	err := row.Scan(&candle.Time, &candle.Open, &candle.Close, &candle.High, &candle.Low, &candle.Volume)
 	if err != nil {
@@ -67,10 +68,12 @@ func CreateCandleWithDuration(ticker bitflyer.Ticker, productCode string, durati
 	currentCandle := GetCandle(productCode, duration, ticker.TruncateDateTime(duration))
 	price := ticker.GetMidPrice()
 	if currentCandle == nil {
-		candle := NewCandle(productCode, duration, ticker.TruncateDateTime(duration), price, price, price, price, ticker.Volume)
+		candle := NewCandle(productCode, duration, ticker.TruncateDateTime(duration),
+			price, price, price, price, ticker.Volume)
 		candle.Create()
 		return true
 	}
+
 	if currentCandle.High <= price {
 		currentCandle.High = price
 	} else if currentCandle.Low >= price {
