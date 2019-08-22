@@ -48,7 +48,7 @@ func (df *DataFrameCandle) Low() []float64 {
 	return s
 }
 
-func (df *DataFrameCandle) Volumes() []float64 {
+func (df *DataFrameCandle) Volume() []float64 {
 	s := make([]float64, len(df.Candles))
 	for i, candle := range df.Candles {
 		s[i] = candle.Volume
