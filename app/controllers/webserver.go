@@ -47,7 +47,7 @@ func apiMakeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFun
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := apiValidPath.FindStringSubmatch(r.URL.Path)
 		if len(m) == 0 {
-			APIError(w, "Not Found", http.StatusNotFound)
+			APIError(w, "Not found", http.StatusNotFound)
 		}
 		fn(w, r)
 	}
@@ -82,7 +82,7 @@ func apiCandleHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func StartWebServer() error {
-	http.HandleFunc("/api/candle", apiMakeHandler(apiCandleHandler))
+	http.HandleFunc("/api/candle/", apiMakeHandler(apiCandleHandler))
 	http.HandleFunc("/chart/", viewChartHandler)
 	return http.ListenAndServe(fmt.Sprintf(":%d", config.Config.Port), nil)
 }
