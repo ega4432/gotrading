@@ -48,6 +48,15 @@
                 periods: [],
                 values: []
             },
+            bbands: {
+                enable: false,
+                indexes: [],
+                n: 20,
+                k: 2,
+                up: [],
+                mid: [],
+                down: []
+            },
         };
         function initConfigValues(){
             config.dataTable.index = 0;
@@ -55,6 +64,9 @@
             config.sma.values = [];
             config.ema.indexes = [];
             config.ema.values = [];
+            config.bbands.indexes = [];
+            config.bbands.up = [];
+            config.bbands.down = [];
         }
         function drawChart(dataTable) {
             var chartDiv = document.getElementById('chart_div');
@@ -97,6 +109,16 @@
                 for (i = 0; i < config.ema.indexes.length; i++) {
                     options.series[config.ema.indexes[i]] = {type: 'line'};
                     view.columns.push(config.candlestick.numViews + config.ema.indexes[i]);
+                }
+            }
+            if (config.bbands.enable == true) {
+                for (i = 0;i < config.bbands.indexes.length; i++) {
+                    options,series[config.bbands.indexes[i]] ={
+                        type: "line",
+                        color:"blue",
+                        lineWidth: 1,
+                    }
+                    view.columns.push(config.candlestick.numViews + config.bbands.indexes[i])
                 }
             }
             var controlWrapper = new google.visualization.ControlWrapper({
