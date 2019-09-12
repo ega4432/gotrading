@@ -1,27 +1,29 @@
 package models
 
 import (
+	"github.com/ciruclation-dev/gotrading/tradingalgo"
 	"github.com/markcheno/go-talib"
 	"time"
 )
 
 type DataFrameCandle struct {
-	ProductCode string        `json:"product_code"`
-	Duration    time.Duration `json:"duration"`
-	Candles     []Candle      `json:"candles"`
-	Smas        []Sma         `json:"smas,omitempty"`
-	Emas        []Ema         `json:"emas,omitempty"`
-	BBands      *BBands       `json:"bbands,omitempty"`
+	ProductCode   string         `json:"product_code"`
+	Duration      time.Duration  `json:"duration"`
+	Candles       []Candle       `json:"candles"`
+	Smas          []Sma          `json:"smas,omitempty"`
+	Emas          []Ema          `json:"emas,omitempty"`
+	BBands        *BBands        `json:"bbands,omitempty"`
+	IchimokuCloud *IchimokuCloud `json:"ichimoku,omitempty"`
 }
 
 type Sma struct {
 	Period int       `json:"period,omitempty"`
-	Values []float64 `json:"values.omitempty"`
+	Values []float64 `json:"values,omitempty"`
 }
 
 type Ema struct {
 	Period int       `json:"period,omitempty"`
-	Values []float64 `json:"values.omitempty"`
+	Values []float64 `json:"values,omitempty"`
 }
 
 type BBands struct {
@@ -30,6 +32,14 @@ type BBands struct {
 	Up   []float64 `json:"up,omitempty"`
 	Mid  []float64 `json:"mid,omitempty"`
 	Down []float64 `json:"down,omitempty"`
+}
+
+type IchimokuCloud struct {
+	Tenkan  []float64 `json:"tenkan,omitempty"`
+	Kijun   []float64 `json:"kijun,omitempty"`
+	SenkouA []float64 `json:"senkoua,omitempty"`
+	SenkouB []float64 `json:"senkoub,omitempty"`
+	Chikou  []float64 `json:"chikou,omitempty"`
 }
 
 func (df *DataFrameCandle) Times() []time.Time {
@@ -93,7 +103,7 @@ func (df *DataFrameCandle) AddSma(period int) bool {
 
 func (df *DataFrameCandle) AddEma(period int) bool {
 	if len(df.Candles) > period {
-		df.Smas = append(df.Smas, Sma{
+		df.Emas = append(df.Emas, Ema{
 			Period: period,
 			Values: talib.Ema(df.Closes(), period),
 		})
@@ -115,4 +125,20 @@ func (df *DataFrameCandle) AddBBands(n int, k float64) bool {
 		return true
 	}
 	return true
+}
+
+func (df *DataFrameCandle) AddIchimoku() bool {
+	tenkanN := 9
+	if len(df.Closes()) >= tenkanN {
+		tenkan, kijun, senkouA, senkouB, chikou := tradingalgo.IchimokuCloud(df.Closes())
+		df.IchimokuCloud = &IchimokuCloud{
+			Tenkan:  tenkan,
+			Kijun:   kijun,
+			SenkouA: senkouA,
+			SenkouB: senkouB,
+			Chikou:  chikou,
+		}
+		return true
+	}
+	return false
 }
