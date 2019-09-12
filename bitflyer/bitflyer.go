@@ -31,7 +31,6 @@ func New(key, secret string) *APIClient {
 
 func (api APIClient) header(method, endpoint string, body []byte) map[string]string {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	log.Println(timestamp)
 	message := timestamp + method + endpoint + string(body)
 
 	mac := hmac.New(sha256.New, []byte(api.secret))
@@ -138,14 +137,12 @@ func (t *Ticker) TruncateDateTime(duration time.Duration) time.Time {
 func (api *APIClient) GetTicker(productCode string) (*Ticker, error) {
 	url := "ticker"
 	resp, err := api.doRequest("GET", url, map[string]string{"product_code": productCode}, nil)
-	log.Printf("url=%s resp=%s", url, string(resp))
 	if err != nil {
 		return nil, err
 	}
 	var ticker Ticker
 	err = json.Unmarshal(resp, &ticker)
 	if err != nil {
-		log.Printf("action=GetBalance err=%s", err.Error())
 		return nil, err
 	}
 	return &ticker, nil
