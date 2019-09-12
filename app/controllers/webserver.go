@@ -90,7 +90,7 @@ func apiCandleHandler(w http.ResponseWriter, r *http.Request) {
 		df.AddSma(period3)
 	}
 
-	ema := r.URL.Query().Get("sma")
+	ema := r.URL.Query().Get("ema")
 	if ema != "" {
 		strEmaPeriod1 := r.URL.Query().Get("emaPeriod1")
 		strEmaPeriod2 := r.URL.Query().Get("emaPeriod2")
@@ -125,6 +125,11 @@ func apiCandleHandler(w http.ResponseWriter, r *http.Request) {
 			k = 2
 		}
 		df.AddBBands(n, float64(k))
+	}
+
+	ichimoku := r.URL.Query().Get("ichimoku")
+	if ichimoku != "" {
+		df.AddIchimoku()
 	}
 
 	js, err := json.Marshal(df)
