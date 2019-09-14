@@ -19,8 +19,8 @@
             margin: 10px;
             color: gray;
         }
-        .border_chart{
-            border-bottom: 1px solid #cccccc;
+        .bottom_chart{
+            border-bottom: 1px solid #ccc;
         }
     </style>
 
@@ -69,7 +69,7 @@
                 indexes: [],
                 tenkan: [],
                 kijun: [],
-                senkouA: [],
+                senkouA : [],
                 senkouB: [],
                 chikou: []
             },
@@ -77,6 +77,14 @@
                 enable: false,
                 index: [],
                 values: []
+            },
+            rsi: {
+                enable: false,
+                indexes: {'up': 0, 'value': 0, 'down': 0},
+                period: 14,
+                up: 70,
+                values: [],
+                down: 30
             },
         };
         function initConfigValues(){
@@ -92,10 +100,11 @@
             config.ichimoku.indexes = [];
             config.ichimoku.tenkan = [];
             config.ichimoku.kijun = [];
-            config.ichimoku.senkouA = [];
-            config.ichimoku.senkouB = [];
+            config.ichimoku.senkouA= [];
+            config.ichimoku.senkouB= [];
             config.ichimoku.chikou = [];
-            config.volue.index = [];
+            config.volume.index = [];
+            config.rsi.indexes = [];
         }
         function drawChart(dataTable) {
             var chartDiv = document.getElementById('chart_div');
@@ -134,14 +143,12 @@
                     view.columns.push(config.candlestick.numViews + config.sma.indexes[i]);
                 }
             }
-
             if (config.ema.enable == true) {
                 for (i = 0; i < config.ema.indexes.length; i++) {
                     options.series[config.ema.indexes[i]] = {type: 'line'};
                     view.columns.push(config.candlestick.numViews + config.ema.indexes[i]);
                 }
             }
-
             if (config.bbands.enable == true) {
                 for (i = 0; i < config.bbands.indexes.length; i++) {
                     options.series[config.bbands.indexes[i]] = {
@@ -152,7 +159,6 @@
                     view.columns.push(config.candlestick.numViews + config.bbands.indexes[i])
                 }
             }
-
             if (config.ichimoku.enable == true) {
                 for (i = 0; i < config.ichimoku.indexes.length; i++) {
                     options.series[config.ichimoku.indexes[i]] = {
@@ -162,14 +168,13 @@
                     view.columns.push(config.candlestick.numViews + config.ichimoku.indexes[i]);
                 }
             }
-
             if (config.volume.enable == true) {
-                if ($('#ivolume_div').length == 0) {
+                if ($('#volume_div').length == 0) {
                     $('#technical_div').append(
-                            "<div id='volume_div class='bottom_chart'>" +
-                            "<span class='technical_title'>Volume</span>" +
-                            "<div id='volume_chart'></div>" +
-                            "</div>")
+                        "<div id='volume_div' class='bottom_chart'>" +
+                        "<span class='technical_title'>Volume</span>" +
+                        "<div id='volume_chart'></div>" +
+                        "</div>")
                 }
                 var volumeChart = new google.visualization.ChartWrapper({
                     'chartType': 'ColumnChart',
@@ -180,12 +185,40 @@
                         'series': {}
                     },
                     'view': {
-                        'columns': [{'type': 'string'}, 5]
+                        'columns': [ { 'type': 'string' }, 5]
                     }
                 });
                 charts.push(volumeChart)
             }
-
+            if (config.rsi.enable == true) {
+                if ($('#rsi_div').length == 0) {
+                    $('#technical_div').append(
+                        "<div id='rsi_div' class='bottom_chart'>" +
+                        "<span class='technical_title'>RSI</span>" +
+                        "<div id='rsi_chart'></div>" +
+                        "</div>")
+                }
+                var up = config.candlestick.numViews + config.rsi.indexes['up'];
+                var value = config.candlestick.numViews + config.rsi.indexes['value'];
+                var down = config.candlestick.numViews + config.rsi.indexes['down'];
+                var rsiChart = new google.visualization.ChartWrapper({
+                    'chartType': 'LineChart',
+                    'containerId': 'rsi_chart',
+                    'options': {
+                        'hAxis': {'slantedText': false},
+                        'legend': {'position': 'none'},
+                        'series': {
+                            0: {color: 'black', lineWidth: 1},
+                            1: {color: '#e2431e'},
+                            2: {color: 'black', lineWidth: 1}
+                        }
+                    },
+                    'view': {
+                        'columns': [ { 'type': 'string' }, up, value, down]
+                    }
+                });
+                charts.push(rsiChart)
+            }
             var controlWrapper = new google.visualization.ControlWrapper({
                 'controlType': 'ChartRangeFilter',
                 'containerId': 'filter_div',
@@ -231,7 +264,10 @@
             if (config.ichimoku.enable == true) {
                 params["ichimoku"] = true;
             }
-
+            if (config.rsi.enable == true) {
+                params["rsi"] = true;
+                params["rsiPeriod"] = config.rsi.period;
+            }
             $.get("/api/candle/", params).done(function (data) {
                 initConfigValues();
                 var dataTable = new google.visualization.DataTable();
@@ -261,7 +297,6 @@
                         config.ema.values[i] = emaData["values"]
                     }
                 }
-
                 if (data['bbands'] != undefined) {
                     var n = data['bbands']['n'];
                     var k = data['bbands']['k'];
@@ -281,7 +316,6 @@
                     config.bbands.mid = mid;
                     config.bbands.down = down;
                 }
-
                 if (data['ichimoku'] != undefined) {
                     var tenkan = data['ichimoku']['tenkan'];
                     var kijun = data['ichimoku']['kijun'];
@@ -309,7 +343,19 @@
                     dataTable.addColumn('number', 'SenkouB');
                     dataTable.addColumn('number', 'Chikou');
                 }
-
+                if (data['rsi'] != undefined ){
+                    config.dataTable.index += 1;
+                    config.rsi.indexes['up'] = config.dataTable.index;
+                    config.dataTable.index += 1;
+                    config.rsi.indexes['value'] = config.dataTable.index;
+                    config.dataTable.index += 1;
+                    config.rsi.indexes['down'] = config.dataTable.index;
+                    config.rsi.period = data['rsi']['period'];
+                    config.rsi.values = data['rsi']['values'];
+                    dataTable.addColumn('number', 'RSI Thread');
+                    dataTable.addColumn('number', 'RSI(' + config.rsi.period + ')');
+                    dataTable.addColumn('number', 'RSI Thread');
+                }
                 var googleChartData = [];
                 var candles = data["candles"];
                 for(var i=0; i < candles.length; i++){
@@ -378,6 +424,15 @@
                             datas.push(config.ichimoku.chikou[i]);
                         }
                     }
+                    if (data["rsi"] != undefined){
+                        datas.push(config.rsi.up);
+                        if (config.rsi.values[i] == 0) {
+                            datas.push(null);
+                        }else{
+                            datas.push(config.rsi.values[i]);
+                        }
+                        datas.push(config.rsi.down);
+                    }
                     googleChartData.push(datas)
                 }
                 dataTable.addRows(googleChartData);
@@ -436,7 +491,6 @@
                 config.ema.periods[2] = this.value;
                 send();
             });
-
             $('#inputBBands').change(function() {
                 if (this.checked === true) {
                     config.bbands.enable = true;
@@ -453,7 +507,6 @@
                 config.bbands.k = this.value;
                 send();
             });
-
             $('#inputIchimoku').change(function() {
                 if (this.checked === true) {
                     config.ichimoku.enable = true;
@@ -462,16 +515,28 @@
                 }
                 send();
             });
-
             $('#inputVolume').change(function() {
                 if (this.checked === true) {
+                    config.volume.enable = true;
                     drawChart(config.dataTable.value);
                 } else {
                     config.volume.enable = false;
                     $('#volume_div').remove();
                 }
             });
-
+            $('#inputRsi').change(function() {
+                if (this.checked === true) {
+                    config.rsi.enable = true;
+                } else {
+                    config.rsi.enable = false;
+                    $('#rsi_div').remove();
+                }
+                send();
+            });
+            $("#inputRsiPeriod").change(function() {
+                config.rsi.period = this.value;
+                send();
+            });
         }
     </script>
 </head>
@@ -508,8 +573,12 @@
 </div>
 
 <div>
-
     Volume <input id="inputVolume" type="checkbox">
+</div>
+
+<div>
+    Rsi <input id="inputRsi" type="checkbox">
+    Period <input id="inputRsiPeriod" type="text" value="14" style="width: 15px;">
 </div>
 
 <div id="dashboard_div">
