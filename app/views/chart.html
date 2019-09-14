@@ -15,6 +15,13 @@
         #filter_div{
             height:50px;
         }
+        .technical_title{
+            margin: 10px;
+            color: gray;
+        }
+        .border_chart{
+            border-bottom: 1px solid #cccccc;
+        }
     </style>
 
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -66,6 +73,11 @@
                 senkouB: [],
                 chikou: []
             },
+            volume: {
+                enable: false,
+                index: [],
+                values: []
+            },
         };
         function initConfigValues(){
             config.dataTable.index = 0;
@@ -83,6 +95,7 @@
             config.ichimoku.senkouA = [];
             config.ichimoku.senkouB = [];
             config.ichimoku.chikou = [];
+            config.volue.index = [];
         }
         function drawChart(dataTable) {
             var chartDiv = document.getElementById('chart_div');
@@ -121,12 +134,14 @@
                     view.columns.push(config.candlestick.numViews + config.sma.indexes[i]);
                 }
             }
+
             if (config.ema.enable == true) {
                 for (i = 0; i < config.ema.indexes.length; i++) {
                     options.series[config.ema.indexes[i]] = {type: 'line'};
                     view.columns.push(config.candlestick.numViews + config.ema.indexes[i]);
                 }
             }
+
             if (config.bbands.enable == true) {
                 for (i = 0; i < config.bbands.indexes.length; i++) {
                     options.series[config.bbands.indexes[i]] = {
@@ -146,6 +161,29 @@
                     };
                     view.columns.push(config.candlestick.numViews + config.ichimoku.indexes[i]);
                 }
+            }
+
+            if (config.volume.enable == true) {
+                if ($('#ivolume_div').length == 0) {
+                    $('#technical_div').append(
+                            "<div id='volume_div class='bottom_chart'>" +
+                            "<span class='technical_title'>Volume</span>" +
+                            "<div id='volume_chart'></div>" +
+                            "</div>")
+                }
+                var volumeChart = new google.visualization.ChartWrapper({
+                    'chartType': 'ColumnChart',
+                    'containerId': 'volume_chart',
+                    'options': {
+                        'hAxis': {'slantedText': false},
+                        'legend': {'position': 'none'},
+                        'series': {}
+                    },
+                    'view': {
+                        'columns': [{'type': 'string'}, 5]
+                    }
+                });
+                charts.push(volumeChart)
             }
 
             var controlWrapper = new google.visualization.ControlWrapper({
@@ -425,6 +463,15 @@
                 send();
             });
 
+            $('#inputVolume').change(function() {
+                if (this.checked === true) {
+                    drawChart(config.dataTable.value);
+                } else {
+                    config.volume.enable = false;
+                    $('#volume_div').remove();
+                }
+            });
+
         }
     </script>
 </head>
@@ -460,8 +507,14 @@
     Ichimoku <input id="inputIchimoku" type="checkbox">
 </div>
 
+<div>
+
+    Volume <input id="inputVolume" type="checkbox">
+</div>
+
 <div id="dashboard_div">
     <div id="chart_div"></div>
+    <div id="technical_div"></div>
     <div id="filter_div"></div>
 </div>
 
