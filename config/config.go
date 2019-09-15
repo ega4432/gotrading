@@ -37,7 +37,7 @@ func init() {
 
 	Config = ConfigList{
 		ApiKey:        cfg.Section("bitflyer").Key("api_key").String(),
-		ApiSecret:     cfg.Section("bitflyer").Key("secret_key").String(),
+		ApiSecret:     cfg.Section("bitflyer").Key("api_secret").String(),
 		LogFile:       cfg.Section("gotrading").Key("log_file").String(),
 		ProductCode:   cfg.Section("gotrading").Key("product_code").String(),
 		Durations:     durations,
@@ -46,5 +46,4 @@ func init() {
 		SQLDriver:     cfg.Section("db").Key("driver").String(),
 		Port:          cfg.Section("web").Key("port").MustInt(),
 	}
-
 }
