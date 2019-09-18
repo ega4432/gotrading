@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/ciruclation-dev/gotrading/config"
 	"log"
@@ -77,7 +78,103 @@ func GetSignalEventsAfterTime(timeTime time.Time) *SignalEvents {
 	for rows.Next() {
 		var signalEvent SignalEvent
 		rows.Scan(&signalEvent.Time, &signalEvent.ProductCode, &signalEvent.Side, &signalEvent.Price, &signalEvent.Size)
-		signalEvents.Signals= append(signalEvents.Signals, signalEvent)
+		signalEvents.Signals = append(signalEvents.Signals, signalEvent)
 	}
 	return &signalEvents
+}
+
+func (s *SignalEvents) CanBuy(time time.Time) bool {
+	lenSignals := len(s.Signals)
+	if lenSignals == 0 {
+		return true
+	}
+
+	lastSignal := s.Signals[lenSignals-1]
+	if lastSignal.Side == "SELL" && lastSignal.Time.Before(time) {
+		return true
+	}
+	return false
+}
+
+func (s *SignalEvents) CanSell(time time.Time) bool {
+	lenSignals := len(s.Signals)
+	if lenSignals == 0 {
+		return false
+	}
+
+	lastSignal := s.Signals[lenSignals-1]
+	if lastSignal.Side == "BUY" && lastSignal.Time.Before(time) {
+		return true
+	}
+	return false
+}
+
+func (s *SignalEvents) Buy(ProductCode string, time time.Time, price, size float64, save bool) bool {
+	SignalEvent := SignalEvent{
+		ProductCode: ProductCode,
+		Time:        time,
+		Side:        "BUY",
+		Price:       price,
+		Size:        size,
+	}
+	if save {
+		SignalEvent.Save()
+	}
+	s.Signals = append(s.Signals, SignalEvent)
+	return true
+}
+
+func (s *SignalEvents) Sell(ProductCode string, time time.Time, price, size float64, save bool) bool {
+	if !s.CanSell(time) {
+		return false
+	}
+	SignalEvent := SignalEvent{
+		ProductCode: ProductCode,
+		Time:        time,
+		Side:        "SELL",
+		Price:       price,
+		Size:        size,
+	}
+	if save {
+		SignalEvent.Save()
+	}
+	s.Signals = append(s.Signals, SignalEvent)
+	return true
+}
+
+func (s *SignalEvents) Profit() float64 {
+	total := 0.0
+	beforeSell := 0.0
+	isHolding := false
+	for i, SignalEvent := range s.Signals {
+		if i == 0 && SignalEvent.Side == "SELL" {
+			continue
+		}
+		if SignalEvent.Side == "BUY" {
+			total -= SignalEvent.Price * SignalEvent.Size
+			isHolding = true
+		}
+		if SignalEvent.Side == "SELL" {
+			total += SignalEvent.Price * SignalEvent.Size
+			beforeSell = total
+		}
+	}
+	if isHolding == true {
+		return beforeSell
+	}
+	return total
+}
+
+func (s SignalEvents) MarshalJSON() ([]byte, error) {
+	value, err := json.Marshal(&struct {
+		Signales []SignalEvent `json:"signales.omitempty"`
+		Profit float64 `json:"profit,omirtempty"`
+	}{
+		Signales: s.Signals,
+		Profit: s.Profit(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return value, err
 }
