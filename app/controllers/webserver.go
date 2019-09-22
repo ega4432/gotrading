@@ -184,6 +184,20 @@ func apiCandleHandler(w http.ResponseWriter, r *http.Request) {
 		df.AddHv(period3)
 	}
 
+	events := r.URL.Query().Get("events")
+	if events != "" {
+		if config.Config.BackTest {
+			performance, p1, p2, p3 := df.OptimizeRsi()
+			log.Println(performance, p1, p2, p3)
+			if performance > 0 {
+				df.Events = df.BackTestRsi(p1, p2, p3)
+			}
+		} else {
+			firstTime := df.Candles[0].Time
+			df.AddEvents(firstTime)
+		}
+	}
+
 	js, err := json.Marshal(df)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
