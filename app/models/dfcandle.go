@@ -338,3 +338,56 @@ func (df *DataFrameCandle) OptimizeIchimoku() (performance float64) {
 	performance = signalEvents.Profit()
 	return performance
 }
+
+func (df *DataFrameCandle) BackTestMacd(macdFastPerio, macdSlowPeriod, macdSignalPeriod int) *SignalEvents {
+	lenCandles := len(df.Candles)
+
+	if lenCandles <= macdFastPerio || lenCandles <= macdSlowPeriod || lenCandles <= macdSignalPeriod {
+		return nil
+	}
+
+	signaleEvents := &SignalEvents{}
+	outMACD, outMACDSignal, _ := talib.Macd(df.Closes(), macdFastPerio, macdSlowPeriod, macdSignalPeriod)
+
+	for i := 1; i < lenCandles; i++ {
+		if outMACD[i] < 0 &&
+			outMACDSignal[i] < 0 &&
+			outMACD[i-1] < outMACDSignal[i-1] &&
+			outMACD[i] >= outMACDSignal[i] {
+			signaleEvents.Buy(df.ProductCode, df.Candles[i].Time, df.Candles[i].Close, 1.0, false)
+		}
+
+		if outMACD[i] > 0 &&
+			outMACDSignal[i] > 0 &&
+			outMACD[i-1] > outMACDSignal[i-1] &&
+			outMACD[i] <= outMACDSignal[i] {
+			signaleEvents.Sell(df.ProductCode, df.Candles[i].Time, df.Candles[i].Close, 1.0, false)
+		}
+	}
+	return signaleEvents
+}
+
+func (df *DataFrameCandle) OptimizeMacd() (performance float64, bestMacdFastPeriod, bestMacdSlowPeriod, bestMacdSignalePeriod int) {
+	bestMacdFastPeriod = 12
+	bestMacdSlowPeriod = 26
+	bestMacdSignalePeriod = 9
+
+	for fastPeriod := 10; fastPeriod < 19; fastPeriod++ {
+		for slowPeriod := 20; slowPeriod < 30; slowPeriod++ {
+			for signalPeriod := 5; signalPeriod < 15; signalPeriod++ {
+				signaleEvents := df.BackTestMacd(bestMacdFastPeriod, bestMacdSlowPeriod, bestMacdSignalePeriod)
+				if signaleEvents == nil {
+					continue
+				}
+				profit := signaleEvents.Profit()
+				if performance < profit {
+					performance = profit
+					bestMacdFastPeriod = fastPeriod
+					bestMacdSlowPeriod = slowPeriod
+					bestMacdSignalePeriod = signalPeriod
+				}
+			}
+		}
+	}
+	return performance, bestMacdFastPeriod, bestMacdSlowPeriod, bestMacdSignalePeriod
+}
