@@ -168,13 +168,23 @@ func (s *SignalEvents) Profit() float64 {
 func (s SignalEvents) MarshalJSON() ([]byte, error) {
 	value, err := json.Marshal(&struct {
 		Signales []SignalEvent `json:"signales.omitempty"`
-		Profit float64 `json:"profit,omirtempty"`
+		Profit   float64       `json:"profit,omirtempty"`
 	}{
 		Signales: s.Signals,
-		Profit: s.Profit(),
+		Profit:   s.Profit(),
 	})
 	if err != nil {
 		return nil, err
 	}
 	return value, err
+}
+
+func (s SignalEvents) CollectAfter(time time.Time) *SignalEvents {
+	for i, signal := range s.Signals {
+		if time.After(signal.Time) {
+			continue
+		}
+		return &SignalEvents{Signals: s.Signals[i:]}
+	}
+	return nil
 }
