@@ -30,6 +30,8 @@ type AI struct {
 	StartTrade           time.Time
 }
 
+var Ai *AI
+
 func NewAI(productCode string, duration time.Duration, pastPeriod int, UsePercent, stopLimitPercent float64, backTest bool) *AI {
 	apiClient := bitflyer.New(config.Config.ApiKey, config.Config.ApiSecret)
 	var signalEvents *models.SignalEvents
@@ -39,7 +41,7 @@ func NewAI(productCode string, duration time.Duration, pastPeriod int, UsePercen
 		signalEvents = models.GetSignalEventsByCount(1)
 	}
 	codes := strings.Split(productCode, "_")
-	ai := &AI{
+	Ai := &AI{
 		API:              apiClient,
 		ProductCode:      productCode,
 		CoinCode:         codes[0],
@@ -54,13 +56,14 @@ func NewAI(productCode string, duration time.Duration, pastPeriod int, UsePercen
 		StartTrade:       time.Now().UTC(),
 		StopLimitPercent: stopLimitPercent,
 	}
-	ai.UpdateOptimizeParams()
-	return ai
+	Ai.UpdateOptimizeParams()
+	return Ai
 }
 
 func (ai *AI) UpdateOptimizeParams() {
 	df, _ := models.GetAllCandle(ai.ProductCode, ai.Duration, ai.PastPeriod)
 	ai.OptimizedTradeParams = df.OptimizeParams()
+	log.Printf("optimized_trade_params=%+v", ai.OptimizedTradeParams)
 }
 
 func (ai *AI) Buy(candle models.Candle) (childOrderAcceptanceID string, isOrderComleted bool) {
@@ -82,8 +85,8 @@ func (ai *AI) Sell(candle models.Candle) (childOrderAcceptanceID string, isOrder
 }
 
 func (ai *AI) Trade() {
-	isAcuire := ai.TradeSemaphore.TryAcquire(1)
-	if !isAcuire {
+	isAcquire := ai.TradeSemaphore.TryAcquire(1)
+	if !isAcquire {
 		log.Println("Could not get trade lock")
 		return
 	}
@@ -120,7 +123,73 @@ func (ai *AI) Trade() {
 		rsiValues = talib.Rsi(df.Closes(), params.RsiPeriod)
 	}
 	for i := 1; i < lenCandles; i++ {
+		buyPoint, sellPoint := 0,0
+		if params.EmaEnable && params.EmaPeriod1 <= i && params.EmaPeriod2 <= i {
+			if emaValues1[i-1] < emaValues2[i-1] && emaValues1[i] >= emaValues2[i] {
+				buyPoint++
+			}
+			if emaValues1[i-1] > emaValues2[i-1] && emaValues1[i] <= emaValues2[i] {
+				sellPoint++
+			}
+		}
 
+		if params.BbEnable && params.BbN <= i {
+			if bbDown[i-1] > df.Candles[i-1].Close && bbDown[i] <= df.Candles[i].Close {
+				buyPoint++
+			}
+			if bbUp[i-1] < df.Candles[i-1].Close && bbUp[i] >= df.Candles[i].Close {
+				sellPoint++
+			}
+		}
+
+		if params.MacdEnable {
+			if outMACD[i-1] < 0 && outMACDSignal[i] < 0 && outMACD[i-1] < outMACDSignal[i-1] && outMACD[i] >= outMACDSignal[i] {
+				buyPoint++
+			}
+			if outMACD[i-1] > 0 && outMACDSignal[i] > 0 && outMACD[i-1] > outMACDSignal[i-1] && outMACD[i] <= outMACDSignal[i] {
+				sellPoint++
+			}
+		}
+
+		if params.IchimokuEnable {
+			if chikou[i-1] < df.Candles[i-1].High && chikou[i] >= df.Candles[i].High  &&
+				senkouA[i] < df.Candles[i].Low && senkouB[i] < df.Candles[i].Low &&
+				tenkan[i] > kijun[i] {
+				buyPoint++
+			}
+			if chikou[i-1] > df.Candles[i-1].High && chikou[i] <= df.Candles[i].High  &&
+				senkouA[i] > df.Candles[i].Low && senkouB[i] > df.Candles[i].Low &&
+				tenkan[i] < kijun[i] {
+				sellPoint++
+			}
+		}
+
+		if params.RsiEnable {
+			if params.RsiEnable && rsiValues[i-1] != 0 &&rsiValues[i-1] != 100 {
+				if rsiValues[i-1] < params.RsiBuyThread && rsiValues[i] >= params.RsiBuyThread {
+					buyPoint++
+				}
+				if rsiValues[i-1] > params.RsiSellThread && rsiValues[i] <= params.RsiSellThread {
+					sellPoint++
+				}
+			}
+		}
+
+		if buyPoint > 0 {
+			_, isOrderCompleted := ai.Buy(df.Candles[i])
+			if !isOrderCompleted {
+				continue
+			}
+			ai.StopLimit = df.Candles[i].Close * ai.StopLimitPercent
+		}
+
+		if sellPoint > 0 || ai.StopLimit > df.Candles[i].Close {
+			_, isOrderCompleted := ai.Sell(df.Candles[i])
+			if !isOrderCompleted {
+				continue
+			}
+			ai.StopLimit = 0.0
+			go ai.UpdateOptimizeParams()
+		}
 	}
-
 }
